@@ -37,6 +37,15 @@ Public MustInherit Class Substance
         End Get
     End Property
 
+    Public Overloads Function equals(ByVal s As Substance) As Boolean
+        If s.ERPCode = Me.ERPCode Then
+            Return True
+        Else
+            Return False
+        End If
+    End Function
+
+
 End Class
 
 Public Class mPipe
@@ -85,6 +94,8 @@ Public Class mPipe
         values(5) = ERPCode
         Return values
     End Function
+
+
 
 
 End Class

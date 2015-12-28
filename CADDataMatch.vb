@@ -318,7 +318,7 @@ Namespace GetSetPipeData
 
         '输出信息至EXCEL表格
         Sub export2Excel(ByVal c As DBObjectCollection)
-
+            'TODO:直接把PFS改为mPipe的泛型集合，单独写一个函数输出至EXCEL，另一个函数输出至图形表格，并在图上标注
             '将管道信息读取到泛型PFS中
             Dim PFS As New List(Of String())
             Dim count As Integer = 0 '计算没有属性管道的数量
@@ -380,7 +380,8 @@ Namespace GetSetPipeData
                 '如果所有直线均不含管道属性则销毁EXCEL文件。否则使表格可见并提醒存储。
                 If count = c.Count Then
                     MsgBox("所有直线均不含管道属性！", MsgBoxStyle.Critical, "信息")
-                    myExcel = Nothing
+                    myWorkbook.Close(Excel.XlSaveAction.xlDoNotSaveChanges)
+                    myExcel.Quit()
                 Else
                     With myWorksheet
                         .Range("B9:I" & noRow.ToString).Value = pipeTable
