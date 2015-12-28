@@ -53,8 +53,7 @@ Public Class mPipe
 
     Public Fittings As New List(Of mPipeFitting)
     Public Length As String
-    Private mNum As String
-    Private mPipeNo As Integer
+    Private mPipeNo As String
 
     Public ReadOnly Property DN() As String
         Get
@@ -74,8 +73,8 @@ Public Class mPipe
         End Get
     End Property
 
-    Public Property pipeNo() As Integer
-        Set(value As Integer)
+    Public Property pipeNo() As String
+        Set(value As String)
             mPipeNo = value
         End Set
         Get
@@ -96,7 +95,24 @@ Public Class mPipe
         Return values
     End Function
 
+    Public Shared Operator +(ByVal p1 As mPipe, ByVal p2 As mPipe) As mPipe
+        Dim l As Double
+        Dim p As New mPipe
+        If p1.equals(p2) Then
+            p = p1
+            l = CType(p1.Length, Double) + CType(p2.Length, Double)
+            p.Length = l.ToString
+            p.pipeNo = p1.pipeNo.ToString & "," & p2.pipeNo.ToString
+        End If
+        Return p
+    End Operator
 
+    Public Sub setPipeNo(ByVal PN As String)
+        Me.pipeNo = PN
+        For Each f As mPipeFitting In Fittings
+            f.pipeNo = PN
+        Next
+    End Sub
 
 
 End Class
@@ -105,7 +121,7 @@ Public Class mPipeFitting
     Inherits Substance
     Private mDN As String
     Public PCS As String
-    Private mPipeNo As Integer
+    Private mPipeNo As String
 
     Public ReadOnly Property Material() As String
         Get
@@ -144,8 +160,8 @@ Public Class mPipeFitting
         End Get
     End Property
 
-    Public Property pipeNo() As Integer
-        Set(value As Integer)
+    Public Property pipeNo() As String
+        Set(value As String)
             mPipeNo = value
         End Set
         Get
@@ -164,6 +180,18 @@ Public Class mPipeFitting
         values(6) = pipeNo
         Return values
     End Function
+
+    Public Shared Operator +(ByVal p1 As mPipeFitting, ByVal p2 As mPipeFitting) As mPipeFitting
+        Dim l As Integer
+        Dim p As New mPipeFitting
+        If p1.equals(p2) Then
+            p = p1
+            l = CType(p1.PCS, Integer) + CType(p2.PCS, Integer)
+            p.PCS = l.ToString
+            p.pipeNo = p1.pipeNo & "," & p2.pipeNo
+        End If
+        Return p
+    End Operator
 
 End Class
 

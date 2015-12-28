@@ -140,7 +140,7 @@ Namespace GetSetPipeData
 
             '创建pipeAtt纪录
             Dim pipeTable As New DataTable
-            myPipe.pipeNo = ent.Handle.Value
+            myPipe.pipeNo = ent.Handle.Value.ToString
             pipeTable = fillPipeDataTable(myPipe)
 
             Dim db As Database = HostApplicationServices.WorkingDatabase
@@ -159,11 +159,7 @@ Namespace GetSetPipeData
                 trans.Commit()
 
                 ed.WriteMessage(vbCrLf, "已经写入管道属性。")
-                'For Each value As TypedValue In myXrecord.Data
-                '    If value.Value.ToString <> "" Then
-                '        ed.WriteMessage(value.Value.ToString() & ";")
-                '    End If
-                'Next
+               
                 ed.WriteMessage(vbCrLf)
             End Using
         End Sub
@@ -254,7 +250,8 @@ Namespace GetSetPipeData
             export2Excel(LineCollection)
         End Sub
 
-        'TODO:标示所有管道属性
+
+        'TODO:输出至图形表格，并在图上标注
         '<CommandMethod("display")> _
         'Public Sub showInfo()
         '    Dim certaintype() As filterType = {filterType.Line}
@@ -319,39 +316,107 @@ Namespace GetSetPipeData
             Return validCollections
         End Function
 
-        '输出信息至EXCEL表格
-        Sub export2Excel(ByVal c As DBObjectCollection)
-            'TODO:直接把PFS改为mPipe的泛型集合，单独写一个函数输出至EXCEL，另一个函数输出至图形表格，并在图上标注
-            '将管道信息读取到泛型PFS中
-            Dim PFS As New List(Of String())
-            Dim count As Integer = 0 '计算没有属性管道的数量
-            Dim myPipe As New mPipe
-            For Each e As Line In c
-                myPipe = readAtt(e)
+
+        ''' <summary>
+        ''' 把管道、管件属性分别集中后，合并重复项，再转换为二维数组
+        ''' </summary>
+        ''' <param name="c">直线集合</param>
+        ''' <returns>把所有管道和管件的属性合并成为二维数组，返回给调用程序</returns>
+        ''' <remarks></remarks>
+        Public Function PFTo2DStr(ByVal c As DBObjectCollection, ByRef count As Integer) As String(,)
+            Dim Pipes As New List(Of mPipe)
+            Dim Fittings As New List(Of mPipeFitting)
+            For Each l As Line In c
+                Dim myPipe As New mPipe
+                myPipe = readAtt(l)
+                If myPipe.pipeNo Is Nothing Then myPipe.setPipeNo(l.Handle.Value.ToString) '兼容旧版本
                 '判断myPipe是否含有属性，如果有进行以下处理。如果没有退出循环。
                 If myPipe.isNull And myPipe.Fittings.Count = 0 Then
                     count += 1
                 Else
-                    '添加管道信息
-                    Dim pipeAtt() As String
-                    pipeAtt = myPipe.setString
-                    PFS.Add(pipeAttToArray(pipeAtt))
                     '添加管件信息
-                    For Each f As mPipeFitting In myPipe.Fittings
-                        pipeAtt = f.setString
-                        PFS.Add(pipeAttToArray(pipeAtt))
-                    Next
+                    Fittings.AddRange(myPipe.Fittings)
+
+                    '添加管道信息
+                    myPipe.Fittings.Clear()
+                    Pipes.Add(myPipe)
                 End If
             Next
-            Dim pipeTable(PFS.Count - 1, 7) As String
-            Dim row As Integer
-            Dim col As Integer
-            For row = 0 To PFS.Count - 1
-                For col = 0 To 7
-                    pipeTable(row, col) = PFS(row)(col)
-                Next
+
+            '管道信息合并
+            combinePipeAndFittings(Pipes)
+            '管件信息合并
+            combinePipeAndFittings(Fittings)
+
+            Dim totalAmount As Integer = Pipes.Count + Fittings.Count
+            Dim pipeTable(totalAmount - 1, 7) As String
+            Dim i As Integer = 0
+            Do Until i = totalAmount
+                Select Case i
+                    Case Is < Pipes.Count
+                        For Each p As mPipe In Pipes
+                            Dim s() As String
+                            s = DBOrderToExcelOrder(p.setString)
+                            For j As Integer = 0 To 7
+                                pipeTable(i, j) = s(j)
+                            Next
+                            i += 1
+                        Next
+                    Case Else
+                        For Each p As mPipeFitting In Fittings
+                            Dim s() As String
+                            s = DBOrderToExcelOrder(p.setString)
+                            For j As Integer = 0 To 7
+                                pipeTable(i, j) = s(j)
+                            Next
+                            i += 1
+                        Next
+                End Select
+            Loop
+            Return pipeTable
+        End Function
+
+        Private Sub combinePipeAndFittings(ByRef s As List(Of mPipe))
+            Dim i As Integer
+            Dim j As Integer
+
+            For i = 0 To s.Count - 2
+                j = i + 1
+                Do While j < s.Count
+                    If s.Item(i).equals(s.Item(j)) Then
+                        s.Item(i) = s.Item(i) + s.Item(j)
+                        s.RemoveAt(j)
+                        j -= 1
+                    End If
+                    j += 1
+                Loop
             Next
-            Dim noRow As Integer = 8 + PFS.Count
+        End Sub
+
+        Private Sub combinePipeAndFittings(ByRef s As List(Of mPipeFitting))
+            Dim i As Integer
+            Dim j As Integer
+
+            For i = 0 To s.Count - 2
+                j = i + 1
+                Do While j < s.Count
+                    If s.Item(i).equals(s.Item(j)) Then
+                        s.Item(i) = s.Item(i) + s.Item(j)
+                        s.RemoveAt(j)
+                        j -= 1
+                    End If
+                    j += 1
+                Loop
+            Next
+        End Sub
+
+        '输出信息至EXCEL表格
+        Sub export2Excel(ByVal c As DBObjectCollection)
+
+            Dim count As Integer = 0 '计算没有属性管道的数量
+            Dim pipeTable As String(,) = PFTo2DStr(c, count)
+            Dim row As Integer = pipeTable.GetLength(0)
+            Dim noRow As Integer = 8 + row
 
             '尝试建立清单，找不到模板时，提交错误信息。
             Try
@@ -392,33 +457,7 @@ Namespace GetSetPipeData
                     '将打印区域设为最后一行止，并将最后一行的下框线设为实线
                     myWorksheet.PageSetup.PrintArea() = "A1:H" & noRow.ToString
                     myExcel.Visible = True
-                    '合并重复项
-                    cell1 = myWorksheet.Range("A9:I" & noRow.ToString)
-                    cell1.Sort(cell1.Cells(1, 9), Excel.XlSortOrder.xlAscending, , , , , , , , , Excel.XlSortOrientation.xlSortColumns)
-                    Dim rowInOp As Integer = STARTROW
-                    Do While rowInOp <= noRow
-                        Dim ERPNo1 As String = myWorksheet.Range("I" & rowInOp.ToString).Value
-                        Dim nextRow As Integer = rowInOp + 1
-                        Dim ERPNo2 As String = myWorksheet.Range("I" & nextRow.ToString).Value
-                        If ERPNo1 = ERPNo2 Then
-                            With myWorksheet
-                                .Range("E" & rowInOp).Value = CType(.Range("E" & rowInOp).Value, Double) + CType(.Range("E" & nextRow).Value, Double)
-                                .Range("H" & rowInOp).Value &= "," & .Range("H" & nextRow).Value
-                                .Rows(nextRow).delete()
-                                noRow -= 1
-                            End With
-                        Else
-                            rowInOp += 1
-                        End If
-
-                    Loop
-
-                    '设定序号
-                    With myWorksheet.Range("A9:A" & noRow.ToString)
-                        .Formula = "= ROW() - 8"
-                        .Copy()
-                        .PasteSpecial(Excel.XlPasteType.xlPasteValues)
-                    End With
+                    
 
                     Dim saveAs As New System.Windows.Forms.SaveFileDialog
                     saveAs.Filter = "Excel 工作薄 (*.xlsx)|*.xlsx|All files (*.*)|*.* "
@@ -436,7 +475,13 @@ Namespace GetSetPipeData
             End Try
         End Sub
 
-        Private Function pipeAttToArray(ByRef pipeAtt As String()) As String()
+        ''' <summary>
+        ''' 把管道管件中定义的属性顺序转换成管道管件清单表格中的属性顺序
+        ''' </summary>
+        ''' <param name="pipeAtt">管道、管件的属性（对应数据库中属性中的顺序)构成的一维数组</param>
+        ''' <returns>返回管道管件清单中的属性顺序构成的一维数组</returns>
+        ''' <remarks>根据管道管件清单格式从货品名称列开始一一对应，PF(5)对应的品牌栏空白，pipeAtt(5)为ERP号，对应清单中第7栏</remarks>
+        Private Function DBOrderToExcelOrder(ByRef pipeAtt As String()) As String()
             '从表格第一行数据开始填写管道属性
             Dim PF(7) As String
             Dim i As Integer
@@ -448,7 +493,7 @@ Namespace GetSetPipeData
             Return PF
         End Function
 
-        
+
 
         '在有属性的直线旁边显示管道属性
         'TODO:修改显示在图形中的标记
