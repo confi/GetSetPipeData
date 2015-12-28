@@ -85,13 +85,14 @@ Public Class mPipe
 
     '次序以材料表表头顺序拟定
     Public Function setString() As String()
-        Dim values(5) As String
+        Dim values(6) As String
         values(0) = Name
         values(1) = Specification
         values(2) = mCinvdefine9
         values(3) = Length
         values(4) = Unit
         values(5) = ERPCode
+        values(6) = pipeNo.ToString
         Return values
     End Function
 
@@ -104,6 +105,7 @@ Public Class mPipeFitting
     Inherits Substance
     Private mDN As String
     Public PCS As String
+    Private mPipeNo As Integer
 
     Public ReadOnly Property Material() As String
         Get
@@ -142,14 +144,24 @@ Public Class mPipeFitting
         End Get
     End Property
 
+    Public Property pipeNo() As Integer
+        Set(value As Integer)
+            mPipeNo = value
+        End Set
+        Get
+            Return mPipeNo
+        End Get
+    End Property
+
     Public Function setString() As String()
-        Dim values(5) As String
+        Dim values(6) As String
         values(0) = Name
         values(1) = Specification
         values(2) = mCinvdefine9
         values(3) = PCS
         values(4) = Unit
         values(5) = ERPCode
+        values(6) = pipeNo
         Return values
     End Function
 
@@ -166,8 +178,8 @@ Public Class getDatabaseData
 
         Try
             ' Add your data task here. 
-            Dim connString As String = "Data Source=WIN-NR1URHCKAEP;Initial Catalog=UFDATA_008_2015;User ID=Datareader;Password=TE2015hz"
-            'Dim connString As String = "Data Source=XP-PROG\SQLEXPRESS;Initial Catalog=AWSDocManagement;User ID=AWSDoc;Password=AWSDoc5100"
+            'Dim connString As String = "Data Source=WIN-NR1URHCKAEP;Initial Catalog=UFDATA_008_2015;User ID=Datareader;Password=TE2015hz"
+            Dim connString As String = "Data Source=XP-PROG\SQLEXPRESS;Initial Catalog=AWSDocManagement;User ID=AWSDoc;Password=AWSDoc5100"
             'Dim sqlString As String = "select cinvcode,cinvname,cinvstd,cinvccode,I_id,cinvdefine9,cinvdefine10 from inventory where cinvccode like '04%'"
 
             Dim command As SqlCommand = New SqlCommand(sqlstring, New SqlConnection(connString))

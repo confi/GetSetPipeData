@@ -140,6 +140,7 @@ Namespace GetSetPipeData
 
             '创建pipeAtt纪录
             Dim pipeTable As New DataTable
+            myPipe.pipeNo = ent.Handle.Value
             pipeTable = fillPipeDataTable(myPipe)
 
             Dim db As Database = HostApplicationServices.WorkingDatabase
@@ -171,9 +172,10 @@ Namespace GetSetPipeData
             '建立数据表
             Dim attTable As New DataTable
             attTable.TableName = "PipeAttTable"
-            Dim columName() As String = {"Name", "Spec", "Material", "PCS", "Unit", "ERPNo"}
+            Dim columName() As String = {"Name", "Spec", "Material", "PCS", "Unit", "ERPNo", "PipeNo"}
             Dim i As Integer
             Dim j As Integer
+            Dim k As Integer
             '设置标题栏
             For i = 0 To columName.Length - 1
                 attTable.AppendColumn(CellType.CharPtr, columName(i))
@@ -184,13 +186,14 @@ Namespace GetSetPipeData
                 If j = myPipe.Fittings.Count Then
                     attstring = myPipe.setString()
                 Else
+                    myPipe.Fittings.Item(j).pipeNo = myPipe.pipeNo
                     attstring = myPipe.Fittings.Item(j).setString()
                 End If
 
                 Dim ROW As New DataCellCollection
-                For i = 0 To columName.Length - 1
+                For k = 0 To columName.Length - 1
                     Dim cell As New DataCell
-                    cell.SetString(attstring(i))
+                    cell.SetString(attstring(k))
                     ROW.Add(cell)
                 Next
                 attTable.AppendRow(ROW, True)
@@ -213,7 +216,7 @@ Namespace GetSetPipeData
                             mid = TC.Value.ToString
                         Case 1
                             att = TC.Value.ToString & ";" & mid & ";"
-                        Case 3
+                        Case 3, 6
                         Case 4
                             att &= ";"
                         Case Else
@@ -225,13 +228,13 @@ Namespace GetSetPipeData
                 If i = dt.NumRows - 1 Then
                     myPipe.getValue(att)
                     myPipe.Length = dt.GetCellAt(i, 3).Value.ToString
-
+                    If dt.NumColumns = 7 Then myPipe.pipeNo = dt.GetCellAt(i, 6).Value.ToString '兼容旧版本。旧版本中没有管道编号一栏
                 Else
                     Dim f As New mPipeFitting
                     f.getValue(att)
                     f.PCS = dt.GetCellAt(i, 3).Value.ToString
+                    If dt.NumColumns = 7 Then f.pipeNo = dt.GetCellAt(i, 6).Value.ToString '同上
                     myPipe.Fittings.Add(f)
-                    
                 End If
             Next
         End Sub
@@ -332,15 +335,10 @@ Namespace GetSetPipeData
                     '添加管道信息
                     Dim pipeAtt() As String
                     pipeAtt = myPipe.setString
-                    ReDim Preserve pipeAtt(6)
-                    myPipe.pipeNo = e.Handle.Value
-                    pipeAtt(6) = myPipe.pipeNo.ToString
                     PFS.Add(pipeAttToArray(pipeAtt))
                     '添加管件信息
                     For Each f As mPipeFitting In myPipe.Fittings
                         pipeAtt = f.setString
-                        ReDim Preserve pipeAtt(6)
-                        pipeAtt(6) = myPipe.pipeNo.ToString
                         PFS.Add(pipeAttToArray(pipeAtt))
                     Next
                 End If
