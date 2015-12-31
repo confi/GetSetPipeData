@@ -251,15 +251,28 @@ Namespace GetSetPipeData
         End Sub
 
 
-        'TODO:输出至图形表格，并在图上标注
-        '<CommandMethod("display")> _
-        'Public Sub showInfo()
-        '    Dim certaintype() As filterType = {filterType.Line}
-        '    Dim LineCollection As DBObjectCollection = getValidCollection(getSelection(certaintype))
-        '    For Each l As Line In LineCollection
-        '        createLabel(l)
-        '    Next
-        'End Sub
+        '输出至图形表格，并在图上标注
+        <CommandMethod("display")> _
+        Public Sub showInfo()
+            Dim certaintype() As filterType = {filterType.Line}
+            Dim LineCollection As DBObjectCollection = getValidCollection(getSelection(certaintype))
+            Dim s(,) As String
+
+            Try
+                s = PFTo2DStr(LineCollection)
+            Catch ex As ArgumentException
+                Exit Sub
+            End Try
+
+            '插入BOM表
+            If s.GetLength(0) > 0 Then
+                Dim CN As String() = {"序号", "名称", "规格", "材质", "数量", "单位"}
+                creatTable(s.GetLength(0), 5, CN, s)
+            End If
+
+            'TODO:插入注释
+
+        End Sub
 
 
         Function getSelection(ByVal tps As filterType()) As DBObjectCollection
@@ -321,9 +334,10 @@ Namespace GetSetPipeData
         ''' 把管道、管件属性分别集中后，合并重复项，再转换为二维数组
         ''' </summary>
         ''' <param name="c">直线集合</param>
+        ''' <param name="count">没有属性的直线数量，作为判断是否所有直线均无属性的依据</param>
         ''' <returns>把所有管道和管件的属性合并成为二维数组，返回给调用程序</returns>
         ''' <remarks></remarks>
-        Public Function PFTo2DStr(ByVal c As DBObjectCollection, ByRef count As Integer) As String(,)
+        Public Function PFTo2DStr(ByVal c As DBObjectCollection, Optional ByRef count As Integer = 0) As String(,)
             Dim Pipes As New List(Of mPipe)
             Dim Fittings As New List(Of mPipeFitting)
             For Each l As Line In c
@@ -342,6 +356,13 @@ Namespace GetSetPipeData
                     Pipes.Add(myPipe)
                 End If
             Next
+            '如果所有直线都没有管道管件信息，那么退出程序并报警。
+            If count = c.Count Then
+                MsgBox("选择的直线不含有管道管件信息，请选择有信息的直线！", MsgBoxStyle.Critical, "选择错误")
+                Dim e As New ArgumentException
+                Throw e
+                Exit Function
+            End If
 
             '管道信息合并
             combinePipeAndFittings(Pipes)
@@ -414,7 +435,13 @@ Namespace GetSetPipeData
         Sub export2Excel(ByVal c As DBObjectCollection)
 
             Dim count As Integer = 0 '计算没有属性管道的数量
-            Dim pipeTable As String(,) = PFTo2DStr(c, count)
+            Dim pipeTable As String(,)
+            Try
+                pipeTable = PFTo2DStr(c, count)
+            Catch ex As ArgumentException
+                Exit Sub
+            End Try
+
             Dim row As Integer = pipeTable.GetLength(0)
             Dim noRow As Integer = 8 + row
 
@@ -494,71 +521,117 @@ Namespace GetSetPipeData
         End Function
 
 
+        Public Sub creatTable(ByVal RowNum As Integer, ByVal ColNum As Integer, ByVal columnTitle() As String, ByVal content(,) As String)
+            Dim db As Database = HostApplicationServices.WorkingDatabase
+            Dim T As New Table
+            If RowNum < 1 Or ColNum < 1 Then
+                Dim e As New ArgumentException
+                Throw e
+                Exit Sub
+            End If
+            T.SetSize(RowNum + 1, ColNum + 1) '行数为内容行加表标题和栏标题
+            T.TableStyle = db.Tablestyle
+
+            'TODO:插入表标题及内容
+            T.Cells(0, 0).TextString = "材料清单"
+            For i As Integer = 0 To ColNum
+                T.Cells(1, i).Value = columnTitle(i)
+            Next
+            Dim row As Integer = 0
+            Dim col As Integer = 0
+            For row = 2 To RowNum
+                For col = 0 To ColNum
+                    If col = 0 Then
+                        T.Cells(row, col).Value = row - 1
+                    Else
+                        T.Cells(row, col).Value = content(row - 1, col - 1)
+                    End If
+
+                Next
+            Next
+            T.GenerateLayout()
+
+            Dim ed As Editor = Application.DocumentManager.MdiActiveDocument.Editor
+            Dim pt As PromptPointResult = ed.GetPoint("请选择材料表的位置(默认原点)：")
+            If pt.Status = PromptStatus.OK Then
+                T.Position = pt.Value
+            Else
+                T.Position = Point3d.Origin
+            End If
+
+            Dim trans As Transaction = db.TransactionManager.StartTransaction
+            Using trans
+                Dim bt As BlockTable = trans.GetObject(db.BlockTableId, OpenMode.ForRead)
+                Dim btr As BlockTableRecord = trans.GetObject(bt(BlockTableRecord.ModelSpace), OpenMode.ForWrite)
+                btr.AppendEntity(T)
+                trans.AddNewlyCreatedDBObject(T, True)
+                trans.Commit()
+            End Using
+        End Sub
 
         '在有属性的直线旁边显示管道属性
         'TODO:修改显示在图形中的标记
-        'Sub createLabel(ByVal l As Line)
-        '    Dim db As Database = HostApplicationServices.WorkingDatabase
 
-        '    If l.ExtensionDictionary.IsNull Then
-        '        MsgBox("选择的直线无管道属性！", MsgBoxStyle.Exclamation)
-        '        Exit Sub
-        '    End If
-        '    Using tr As Transaction = db.TransactionManager.StartTransaction
-        '        Dim dic As DBDictionary = tr.GetObject(l.ExtensionDictionary, OpenMode.ForRead)
-        '        Dim myPipe As New pipeAtt
-        '        If dic.Contains("pipeAtt") Then
-        '            myPipe = readAtt(l)
+        Private Sub createAnn(ByVal LineCollection As DBObjectCollection, ByVal pipeDataTable As String(,))
+            Dim lNum As String
+            Dim item As String = ""
+            For Each l As Line In LineCollection
+                lNum = l.Handle.Value.ToString
+                For i As Integer = 0 To pipeDataTable.GetLength(0) - 1
+                    If pipeDataTable(i, 6).Contains(lNum) Then
+                        If item = "" Then
+                            item = i.ToString
+                        Else
+                            item &= "," & i.ToString
+                        End If
+                    End If
+                Next
+                createLabel(l, item.Split(","))
+                item = ""
+            Next
+        End Sub
 
-        '        Else
-        '            MsgBox("选择的直线无管道属性！", MsgBoxStyle.Exclamation)
-        '            Exit Sub
-        '        End If
-        '        '生成管道标签文字
-        '        Dim str1 As String = "#"
-        '        For i As Integer = 0 To 5
-        '            str1 = str1 + myPipe.pipe(i)
-        '            If i < 4 Then str1 = str1 + ","
-        '        Next
-        '        '生成管件标签文字
-        '        Dim str2 As String = ""
-        '        For i = 0 To 1
-        '            If myPipe.endPoint(i, 1) <> "" Then
-        '                str2 = str2 & vbCrLf & "#"
-        '                For j = 0 To 5
-        '                    str2 = str2 + myPipe.endPoint(i, j)
-        '                    If j < 4 Then str2 = str2 + ","
-        '                Next
-        '            End If
-        '        Next
+        Sub createLabel(ByVal l As Line, ByVal s() As String)
+            Dim db As Database = HostApplicationServices.WorkingDatabase
+            '创建引线
+            Dim firstVertex As Point3d = l.StartPoint
+            Dim secondVertex As New Point3d((l.StartPoint.X + l.EndPoint.X) / 2, (l.StartPoint.Y + l.EndPoint.Y) / 2, 0)
+            Dim thirdVertex As New Point3d(secondVertex.X + 100, secondVertex.Y, 0)
+            Dim myLeader As New Leader
+            myLeader.AppendVertex(firstVertex)
+            myLeader.AppendVertex(secondVertex)
+            myLeader.AppendVertex(thirdVertex)
+            myLeader.SetPlane(New Plane(Point3d.Origin, Vector3d.XAxis))
+            ToModelSpace(myLeader)
 
-        '        '创建MTEXT对象并添加
-        '        Dim lLabel As New MText
-        '        Const angleV1 As Double = Math.PI / 2
-        '        Const angleV2 As Double = 3 * Math.PI / 2
-        '        lLabel.TextHeight = 350
-        '        lLabel.Width = 8000
-        '        'lLabel.Annotative = AnnotativeStates.True
+            '创建DBTEXT集合
 
-        '        '判断文字方向
-        '        If l.Angle > angleV1 And l.Angle < angleV2 Then
-        '            lLabel.Location = l.EndPoint
-        '            lLabel.Rotation = l.Angle - Math.PI
-        '        Else
-        '            lLabel.Location = l.StartPoint
-        '            lLabel.Rotation = l.Angle
-        '        End If
+            Dim v As New Vector3d(4, 0, 0)
+            For i As Integer = 0 To s.Length - 1
+                Dim ent As DBText = New DBText
+                With ent
+                    .Position = thirdVertex.Add(v * (i + 1))
+                    .TextString = s(i)
+                    .Height = 3
+                End With
+                ToModelSpace(ent)
+            Next
+            
+        End Sub
 
-        '        lLabel.Contents = str1 & str2
+        Public Function ToModelSpace(ByVal ent As Entity) As ObjectId
+            Dim db As Database = HostApplicationServices.WorkingDatabase
+            Dim entId As ObjectId
+            Dim trans As Transaction = db.TransactionManager.StartTransaction
+            Using trans
+                Dim bt As BlockTable = trans.GetObject(db.BlockTableId, OpenMode.ForRead)
+                Dim btr As BlockTableRecord = trans.GetObject(bt(BlockTableRecord.ModelSpace), OpenMode.ForWrite)
 
-        '        Dim entId As ObjectId
-        '        Dim bt As BlockTable = tr.GetObject(db.BlockTableId, OpenMode.ForRead)
-        '        Dim btr As BlockTableRecord = tr.GetObject(bt(BlockTableRecord.ModelSpace), OpenMode.ForWrite)
-        '        entId = btr.AppendEntity(lLabel)
-        '        tr.AddNewlyCreatedDBObject(lLabel, True)
-        '        tr.Commit()
-        '    End Using
-        'End Sub
+                entId = btr.AppendEntity(ent)
+                trans.AddNewlyCreatedDBObject(ent, True)
+                trans.Commit()
+            End Using
+        End Function
 
         '读取图形中的纪录写入pipeAtt
         Function readAtt(ByVal ent As Line) As mPipe

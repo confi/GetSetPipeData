@@ -138,6 +138,10 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>CADDataMatch.resx</DependentUpon>
     </Compile>
+    <Compile Include="CreateAnn.designer.vb">
+      <DependentUpon>CreateAnn.vb</DependentUpon>
+    </Compile>
+    <Compile Include="CreateAnn.vb" />
     <Compile Include="InitiatePlugin.vb" />
     <Compile Include="CADDataMatch.vb" />
     <Compile Include="Fittings.designer.vb">
@@ -176,6 +180,9 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="CreateAnn.resx">
+      <DependentUpon>CreateAnn.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Fittings.resx">
       <DependentUpon>Fittings.vb</DependentUpon>
     </EmbeddedResource>
