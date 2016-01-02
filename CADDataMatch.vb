@@ -271,7 +271,7 @@ Namespace GetSetPipeData
             End If
 
             'TODO:插入注释
-
+            createAnn(LineCollection, s)
         End Sub
 
 
@@ -529,7 +529,7 @@ Namespace GetSetPipeData
                 Throw e
                 Exit Sub
             End If
-            T.SetSize(RowNum + 1, ColNum + 1) '行数为内容行加表标题和栏标题
+            T.SetSize(RowNum + 2, ColNum + 1) '行数为内容行加表标题和栏标题
             T.TableStyle = db.Tablestyle
 
             'TODO:插入表标题及内容
@@ -539,12 +539,12 @@ Namespace GetSetPipeData
             Next
             Dim row As Integer = 0
             Dim col As Integer = 0
-            For row = 2 To RowNum
+            For row = 2 To RowNum + 1
                 For col = 0 To ColNum
                     If col = 0 Then
                         T.Cells(row, col).Value = row - 1
                     Else
-                        T.Cells(row, col).Value = content(row - 1, col - 1)
+                        T.Cells(row, col).Value = content(row - 2, col - 1)
                     End If
 
                 Next
@@ -580,43 +580,68 @@ Namespace GetSetPipeData
                 For i As Integer = 0 To pipeDataTable.GetLength(0) - 1
                     If pipeDataTable(i, 6).Contains(lNum) Then
                         If item = "" Then
-                            item = i.ToString
+                            item = (i + 1).ToString
                         Else
-                            item &= "," & i.ToString
+                            item &= "," & (i + 1).ToString
                         End If
                     End If
                 Next
-                createLabel(l, item.Split(","))
+                createLabel(l, item)
                 item = ""
             Next
         End Sub
 
-        Sub createLabel(ByVal l As Line, ByVal s() As String)
+        Sub createLabel(ByVal l As Line, ByVal s As String)
             Dim db As Database = HostApplicationServices.WorkingDatabase
             '创建引线
-            Dim firstVertex As Point3d = l.StartPoint
-            Dim secondVertex As New Point3d((l.StartPoint.X + l.EndPoint.X) / 2, (l.StartPoint.Y + l.EndPoint.Y) / 2, 0)
-            Dim thirdVertex As New Point3d(secondVertex.X + 100, secondVertex.Y, 0)
-            Dim myLeader As New Leader
-            myLeader.AppendVertex(firstVertex)
-            myLeader.AppendVertex(secondVertex)
-            myLeader.AppendVertex(thirdVertex)
-            myLeader.SetPlane(New Plane(Point3d.Origin, Vector3d.XAxis))
-            ToModelSpace(myLeader)
+            Dim firstVertex As Point3d = New Point3d((l.StartPoint.X + l.EndPoint.X) / 2, (l.StartPoint.Y + l.EndPoint.Y) / 2, 0)
+            Dim offSetValue As Double
+            offSetValue = l.Length / 5
+            Dim secondVertex As New Point3d(l.StartPoint.X + offSetValue, l.StartPoint.Y + offSetValue, 0)
+            Dim thirdVertex As New Point3d(secondVertex.X + offSetValue, secondVertex.Y, 0)
+
+            'Dim myLeader As New Leader
+            'myLeader.AppendVertex(firstVertex)
+            'myLeader.AppendVertex(secondVertex)
+            'myLeader.AppendVertex(thirdVertex)
+            'myLeader.SetPlane(New Plane)
+
+            Dim t As New MText
+            With t
+                .Width = s.Length * 5
+                .Height = 5
+                .Contents = s
+                .Location = thirdVertex
+            End With
+
+            Dim myMLeader As New MLeader
+            myMLeader.SetDatabaseDefaults()
+            myMLeader.ContentType = ContentType.MTextContent
+
+            With myMLeader
+                Dim idx As Integer
+                idx = .AddLeaderLine(secondVertex)
+                .AddFirstVertex(idx, firstVertex)
+                '.AddLastVertex(idx, thirdVertex)
+                .MText = t
+            End With
+
+            ToModelSpace(myMLeader)
 
             '创建DBTEXT集合
 
-            Dim v As New Vector3d(4, 0, 0)
-            For i As Integer = 0 To s.Length - 1
-                Dim ent As DBText = New DBText
-                With ent
-                    .Position = thirdVertex.Add(v * (i + 1))
-                    .TextString = s(i)
-                    .Height = 3
-                End With
-                ToModelSpace(ent)
-            Next
-            
+            'Dim v As New Vector3d(4, 0, 0)
+            'For i As Integer = 0 To s.Length - 1
+            '    Dim ent As DBText = New DBText
+            '    With ent
+            '        .Position = thirdVertex
+            '        .TextString = s(i)
+            '        .Height = 3
+            '    End With
+            '    ToModelSpace(ent)
+            '    thirdVertex += v * s(i).Length
+            'Next
+
         End Sub
 
         Public Function ToModelSpace(ByVal ent As Entity) As ObjectId
