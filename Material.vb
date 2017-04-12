@@ -206,7 +206,7 @@ Public Class getDatabaseData
 
         Try
             ' Add your data task here. 
-            Dim connString As String = "Data Source=WIN-NR1URHCKAEP;Initial Catalog=UFDATA_008_2015;User ID=Datareader;Password=TE2015hz"
+            Dim connString As String = "Data Source=192.168.0.250;Initial Catalog=UFDATA_168_2016;User ID=Datareader;Password=TE2015hz"
             'Dim connString As String = "Data Source=XP-PROG\SQLEXPRESS;Initial Catalog=AWSDocManagement;User ID=AWSDoc;Password=AWSDoc5100"
             'Dim sqlString As String = "select cinvcode,cinvname,cinvstd,cinvccode,I_id,cinvdefine9,cinvdefine10 from inventory where cinvccode like '04%'"
 

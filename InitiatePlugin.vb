@@ -38,6 +38,7 @@ Namespace GetSetPipeData
             ' as well as some of the existing AutoCAD managed apps.
 
             ' Initialize your plug-in application here
+
         End Sub
 
         Public Sub Terminate() Implements IExtensionApplication.Terminate

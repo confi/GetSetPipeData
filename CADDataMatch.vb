@@ -24,7 +24,7 @@ Namespace GetSetPipeData
         '添加右键菜单
         '=================================================================
 
-        <CommandMethod("AWSISO")> _
+        <CommandMethod("AWS", "AWSISO", "AWSISO", CommandFlags.Modal)> _
         Public Sub AddContextMenu()
 
             Dim ce As New ContextMenuExtension
@@ -58,7 +58,7 @@ Namespace GetSetPipeData
 
         '=================================================================
 
-        <CommandMethod("input")> _
+        <CommandMethod("AWS", "input", "input", CommandFlags.Modal)> _
         Public Sub inputInformation()
             Dim ed As Editor = Application.DocumentManager.MdiActiveDocument.Editor
             Dim i As Boolean = True
@@ -110,7 +110,7 @@ Namespace GetSetPipeData
 
                 Dim dic As DBDictionary = trans.GetObject(ent.ExtensionDictionary, OpenMode.ForRead)
                 Dim inputUI As Pipe = New Pipe
-                
+
                 If dic.Contains("pipeAtt") Then
                     '读取管道属性
                     Dim entryId As ObjectId = dic.GetAt("pipeAtt")
@@ -159,7 +159,7 @@ Namespace GetSetPipeData
                 trans.Commit()
 
                 ed.WriteMessage(vbCrLf, "已经写入管道属性。")
-               
+
                 ed.WriteMessage(vbCrLf)
             End Using
         End Sub
@@ -243,7 +243,7 @@ Namespace GetSetPipeData
         End Enum
 
 
-        <CommandMethod("output")> _
+        <CommandMethod("AWS", "output", "output", CommandFlags.Modal)> _
         Public Sub extractInfo()
             Dim certainType() As filterType = {filterType.Line}
             Dim LineCollection As DBObjectCollection = getValidCollection(getSelection(certainType))
@@ -252,7 +252,7 @@ Namespace GetSetPipeData
 
 
         '输出至图形表格，并在图上标注
-        <CommandMethod("display")> _
+        <CommandMethod("AWS", "display", "display", CommandFlags.Modal)> _
         Public Sub showInfo()
             Dim certaintype() As filterType = {filterType.Line}
             Dim LineCollection As DBObjectCollection = getValidCollection(getSelection(certaintype))
@@ -484,7 +484,7 @@ Namespace GetSetPipeData
                     '将打印区域设为最后一行止，并将最后一行的下框线设为实线
                     myWorksheet.PageSetup.PrintArea() = "A1:H" & noRow.ToString
                     myExcel.Visible = True
-                    
+
 
                     Dim saveAs As New System.Windows.Forms.SaveFileDialog
                     saveAs.Filter = "Excel 工作薄 (*.xlsx)|*.xlsx|All files (*.*)|*.* "
@@ -524,13 +524,30 @@ Namespace GetSetPipeData
         Public Sub creatTable(ByVal RowNum As Integer, ByVal ColNum As Integer, ByVal columnTitle() As String, ByVal content(,) As String)
             Dim db As Database = HostApplicationServices.WorkingDatabase
             Dim T As New Table
+
             If RowNum < 1 Or ColNum < 1 Then
                 Dim e As New ArgumentException
                 Throw e
                 Exit Sub
             End If
-            T.SetSize(RowNum + 2, ColNum + 1) '行数为内容行加表标题和栏标题
-            T.TableStyle = db.Tablestyle
+            '格式化表格
+            With T
+                .SetSize(RowNum + 2, ColNum + 1) '行数为内容行加表标题和栏标题
+                '.TableStyle = db.Tablestyle
+                .Columns(0).Width = 880
+                .Columns(1).Width = 1999
+                .Columns(2).Width = 3264
+                .Columns(3).Width = 1145
+                .Columns(4).Width = 895
+                .Columns(5).Width = 814
+                For Each r As Row In .Rows
+                    r.TextHeight = 160
+                    r.Height = 390
+                    r.Alignment = CellAlignment.MiddleCenter
+                Next
+
+            End With
+
 
             'TODO:插入表标题及内容
             T.Cells(0, 0).TextString = "材料清单"
