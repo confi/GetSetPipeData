@@ -260,6 +260,7 @@ Namespace GetSetPipeData
 
             Try
                 s = PFTo2DStr(LineCollection)
+
             Catch ex As ArgumentException
                 Exit Sub
             End Try
@@ -412,6 +413,9 @@ Namespace GetSetPipeData
                     j += 1
                 Loop
             Next
+
+            '按名称排序
+
         End Sub
 
         Private Sub combinePipeAndFittings(ByRef s As List(Of mPipeFitting))
@@ -541,10 +545,12 @@ Namespace GetSetPipeData
                 .Columns(4).Width = 895
                 .Columns(5).Width = 814
                 For Each r As Row In .Rows
-                    r.TextHeight = 160
+                    r.TextHeight = 175
                     r.Height = 390
                     r.Alignment = CellAlignment.MiddleCenter
+
                 Next
+                .FlowDirection = FlowDirection.BottomToTop
 
             End With
 
