@@ -10,6 +10,7 @@ Imports Microsoft.Office.Interop
 Imports Autodesk.AutoCAD.Windows
 
 
+
 ' This line is not mandatory, but improves loading performances
 <Assembly: CommandClass(GetType(GetSetPipeData.ISOmetric))> 
 
@@ -527,6 +528,33 @@ Namespace GetSetPipeData
 
         Public Sub creatTable(ByVal RowNum As Integer, ByVal ColNum As Integer, ByVal columnTitle() As String, ByVal content(,) As String)
             Dim db As Database = HostApplicationServices.WorkingDatabase
+            Dim styleID As New ObjectId
+
+
+            '检查表格样式中是否已有AWSBTU，如果有则赋值。没有则新建。
+            Dim tr As Transaction = db.TransactionManager.StartTransaction
+            Using tr
+                Dim tsDict As DBDictionary = tr.GetObject(db.TableStyleDictionaryId, OpenMode.ForRead)
+                If tsDict.Contains("AWSBTU") Then
+                    styleID = tsDict.GetAt("AWSBTU")
+                Else
+                    tsDict.UpgradeOpen()
+
+                    '新建由下向上的表格样式
+                    Dim AWStableStyle As New TableStyle
+
+                    With AWStableStyle
+                        .FlowDirection = 1
+                    End With
+                    styleID = tsDict.SetAt("AWSBTU", AWStableStyle)
+                    tr.AddNewlyCreatedDBObject(AWStableStyle, True)
+                    tr.Commit()
+                End If
+
+            End Using
+
+            '新建表格
+
             Dim T As New Table
 
             If RowNum < 1 Or ColNum < 1 Then
@@ -536,6 +564,8 @@ Namespace GetSetPipeData
             End If
             '格式化表格
             With T
+                .TableStyle = styleID
+                'MsgBox("The table flow direction is" & T.FlowDirection, MsgBoxStyle.OkOnly)
                 .SetSize(RowNum + 2, ColNum + 1) '行数为内容行加表标题和栏标题
                 '.TableStyle = db.Tablestyle
                 .Columns(0).Width = 880
@@ -548,9 +578,7 @@ Namespace GetSetPipeData
                     r.TextHeight = 175
                     r.Height = 390
                     r.Alignment = CellAlignment.MiddleCenter
-
                 Next
-                .FlowDirection = FlowDirection.BottomToTop
 
             End With
 
@@ -572,6 +600,7 @@ Namespace GetSetPipeData
 
                 Next
             Next
+            
             T.GenerateLayout()
 
             Dim ed As Editor = Application.DocumentManager.MdiActiveDocument.Editor
@@ -591,6 +620,7 @@ Namespace GetSetPipeData
                 trans.Commit()
             End Using
         End Sub
+
 
         '在有属性的直线旁边显示管道属性
         'TODO:修改显示在图形中的标记
@@ -631,8 +661,9 @@ Namespace GetSetPipeData
 
             Dim t As New MText
             With t
-                .Width = s.Length * 5
-                .Height = 5
+                .Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, 6) '洋红色
+                .Width = s.Length * 175
+                .Height = 175
                 .Contents = s
                 .Location = thirdVertex
             End With
@@ -642,8 +673,10 @@ Namespace GetSetPipeData
             myMLeader.ContentType = ContentType.MTextContent
 
             With myMLeader
+
                 Dim idx As Integer
                 idx = .AddLeaderLine(secondVertex)
+                .SetArrowSize(idx, 175)
                 .AddFirstVertex(idx, firstVertex)
                 '.AddLastVertex(idx, thirdVertex)
                 .MText = t
