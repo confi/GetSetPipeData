@@ -46,10 +46,13 @@ Public MustInherit Class Substance
     End Function
 
 
+
+
 End Class
 
 Public Class mPipe
     Inherits Substance
+    Implements IComparer(Of mPipe)
 
     Public Fittings As New List(Of mPipeFitting)
     Public Length As String
@@ -115,10 +118,21 @@ Public Class mPipe
     End Sub
 
 
+    Public Function Compare(x As mPipe, y As mPipe) As Integer Implements IComparer(Of mPipe).Compare
+        If x.Name.CompareTo(y.Name) <> 0 Then
+            Return x.Name.CompareTo(y.Name)
+        ElseIf x.Specification.CompareTo(y.Specification) <> 0 Then
+            Return x.Specification.CompareTo(y.Specification)
+        Else
+            Return 0
+        End If
+    End Function
 End Class
 
 Public Class mPipeFitting
     Inherits Substance
+    Implements IComparer(Of mPipeFitting)
+
     Private mDN As String
     Public PCS As String
     Private mPipeNo As String
@@ -193,6 +207,15 @@ Public Class mPipeFitting
         Return p
     End Operator
 
+    Public Function Compare(x As mPipeFitting, y As mPipeFitting) As Integer Implements IComparer(Of mPipeFitting).Compare
+        If x.Name.CompareTo(y.Name) <> 0 Then
+            Return x.Name.CompareTo(y.Name)
+        ElseIf x.Specification.CompareTo(y.Specification) <> 0 Then
+            Return x.Specification.CompareTo(y.Specification)
+        Else
+            Return 0
+        End If
+    End Function
 End Class
 
 Public Class getDatabaseData
