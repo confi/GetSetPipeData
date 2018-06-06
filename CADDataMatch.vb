@@ -532,15 +532,15 @@ Namespace GetSetPipeData
 
         Public Sub creatTable(ByVal RowNum As Integer, ByVal ColNum As Integer, ByVal columnTitle() As String, ByVal content(,) As String)
             Dim db As Database = HostApplicationServices.WorkingDatabase
-            Dim styleID As New ObjectId
-
+            Dim TableStyleID As New ObjectId
 
             '检查表格样式中是否已有AWSBTU，如果有则赋值。没有则新建。
             Dim tr As Transaction = db.TransactionManager.StartTransaction
             Using tr
                 Dim tsDict As DBDictionary = tr.GetObject(db.TableStyleDictionaryId, OpenMode.ForRead)
+                Dim txtRec As TextStyleTable = tr.GetObject(db.TextStyleTableId, OpenMode.ForRead)
                 If tsDict.Contains("AWSBTU") Then
-                    styleID = tsDict.GetAt("AWSBTU")
+                    TableStyleID = tsDict.GetAt("AWSBTU")
                 Else
                     tsDict.UpgradeOpen()
 
@@ -549,8 +549,11 @@ Namespace GetSetPipeData
 
                     With AWStableStyle
                         .FlowDirection = 1
+                        If txtRec.Has("AWS175") Then
+                            .TextStyle("AWS175")
+                        End If
                     End With
-                    styleID = tsDict.SetAt("AWSBTU", AWStableStyle)
+                    TableStyleID = tsDict.SetAt("AWSBTU", AWStableStyle)
                     tr.AddNewlyCreatedDBObject(AWStableStyle, True)
                     tr.Commit()
                 End If
@@ -568,7 +571,7 @@ Namespace GetSetPipeData
             End If
             '格式化表格
             With T
-                .TableStyle = styleID
+                .TableStyle = TableStyleID
                 'MsgBox("The table flow direction is" & T.FlowDirection, MsgBoxStyle.OkOnly)
                 .SetSize(RowNum + 2, ColNum + 1) '行数为内容行加表标题和栏标题
                 '.TableStyle = db.Tablestyle
@@ -667,23 +670,35 @@ Namespace GetSetPipeData
             With t
                 .Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, 6) '洋红色
                 .Width = s.Length * 175
-                .Height = 175
+                .Height = 300
+                .TextHeight = 175
                 .Contents = s
                 .Location = thirdVertex
             End With
+
+
+            Dim txtStyleTab As TextStyleTable
+            Dim tr As Transaction = db.TransactionManager.StartTransaction()
+            Using tr
+                txtStyleTab = tr.GetObject(db.TextStyleTableId, OpenMode.ForRead)
+                If txtStyleTab.Has("AWS175") Then
+                    t.TextStyleId = txtStyleTab.Item("AWS175")
+                End If
+            End Using
+
 
             Dim myMLeader As New MLeader
             myMLeader.SetDatabaseDefaults()
             myMLeader.ContentType = ContentType.MTextContent
 
             With myMLeader
-
                 Dim idx As Integer
                 idx = .AddLeaderLine(secondVertex)
                 .SetArrowSize(idx, 175)
                 .AddFirstVertex(idx, firstVertex)
                 '.AddLastVertex(idx, thirdVertex)
                 .MText = t
+                .Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, 6) '洋红色
             End With
 
             ToModelSpace(myMLeader)
@@ -711,7 +726,6 @@ Namespace GetSetPipeData
             Using trans
                 Dim bt As BlockTable = trans.GetObject(db.BlockTableId, OpenMode.ForRead)
                 Dim btr As BlockTableRecord = trans.GetObject(bt(BlockTableRecord.ModelSpace), OpenMode.ForWrite)
-
                 entId = btr.AppendEntity(ent)
                 trans.AddNewlyCreatedDBObject(ent, True)
                 trans.Commit()

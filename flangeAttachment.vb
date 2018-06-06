@@ -129,37 +129,54 @@ Public Class flangeAtt
         '确定螺栓直径
         Select Case DN
             Case "DN10", "DN15", "DN20", "DN25"
-                boltSpec(0) = "M12x50"
+                boltSpec(0) = "M12x60"
                 boltSpec(1) = "4"
                 Return boltSpec
                 Exit Function
             Case "DN32", "DN40", "DN50", "DN65", "DN80", "DN100", "DN125"
                 boltSpec(0) = "M16x"
-            Case "DN150", "DN200", "DN250", "DN300"
+            Case "DN150", "DN200", "DN250", "DN300", "DN350"
                 boltSpec(0) = "M20x"
+            Case "DN400", "DN450", "DN500"
+                boltSpec(0) = "M24x"
+            Case "DN600"
+                boltSpec(0) = "M27x"
         End Select
 
         '确定螺栓长度
         Select Case DN
             Case "DN32", "DN40"
-                boltSpec(0) &= "60"
-            Case "DN50", "DN65", "DN80"
-                boltSpec(0) &= "65"
-            Case "DN100", "DN125"
                 boltSpec(0) &= "70"
-            Case "DN150", "DN200", "DN250", "DN300"
+            Case "DN50", "DN65", "DN80"
+                boltSpec(0) &= "75"
+            Case "DN100", "DN125"
                 boltSpec(0) &= "80"
+            Case "DN150", "DN200", "DN250", "DN300"
+                boltSpec(0) &= "90"
+            Case "DN350"
+                boltSpec(0) &= "95"
+            Case "DN400"
+                boltSpec(0) &= "110"
+            Case "DN450"
+                boltSpec(0) &= "115"
+            Case "DN500"
+                boltSpec(0) &= "120"
+            Case "DN600"
+                boltSpec(0) &= "130"
         End Select
 
         '确定螺栓数量
         Select Case DN
-
             Case "DN32", "DN40", "DN50"
                 boltSpec(1) &= "4"
             Case "DN65", "DN80", "DN100", "DN125", "DN150", "DN200"
                 boltSpec(1) &= "8"
             Case "DN250", "DN300"
                 boltSpec(1) &= "12"
+            Case "DN350", "DN400"
+                boltSpec(1) &= "16"
+            Case "DN450", "DN500", "DN600"
+                boltSpec(1) &= "20"
         End Select
 
         Return boltSpec

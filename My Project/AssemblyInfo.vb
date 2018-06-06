@@ -1,5 +1,7 @@
 ﻿' (C) Copyright 2015 by Microsoft 
 '
+Imports System.Resources
+
 Imports System
 Imports System.Reflection
 Imports System.Runtime.InteropServices
@@ -8,10 +10,10 @@ Imports System.Runtime.InteropServices
 ' set of attributes. Change these attribute values to modify the information
 ' associated with an assembly.
 <Assembly: AssemblyTitle("GetSetPipeData")> 
-<Assembly: AssemblyDescription("")> 
+<Assembly: AssemblyDescription("input-输入材料信息, output-导出EXCEL材料表, display-导出CAD材料表, readtable-读取将CAD炸开的表格导出为EXCEL表格")> 
 <Assembly: AssemblyCompany("HZ")> 
 <Assembly: AssemblyProduct("GetSetPipeData")> 
-<Assembly: AssemblyCopyright("Copyright © HZ 2018")> 
+<Assembly: AssemblyCopyright("Copyright © HZ June 2018")> 
 <Assembly: AssemblyTrademark("")> 
 
 ' Version information for an assembly consists of the following four values:
@@ -61,3 +63,5 @@ Imports System.Runtime.InteropServices
 
 ' The following GUID is for the ID of the typelib if this project is exposed to COM
 <Assembly: Guid("dae9e5fe-2db7-49ed-8d42-ca34544998ad")> 
+
+<Assembly: NeutralResourcesLanguageAttribute("")> 
