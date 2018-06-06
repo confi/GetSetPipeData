@@ -416,7 +416,8 @@ Namespace GetSetPipeData
             Next
 
             '按名称排序
-
+            Dim p As New mPipe
+            s.Sort(p)
         End Sub
 
         Private Sub combinePipeAndFittings(ByRef s As List(Of mPipeFitting))
@@ -434,6 +435,9 @@ Namespace GetSetPipeData
                     j += 1
                 Loop
             Next
+            '按名称排序
+            Dim f As New mPipeFitting
+            s.Sort(f)
         End Sub
 
         '输出信息至EXCEL表格
